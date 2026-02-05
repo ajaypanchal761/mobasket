@@ -10,7 +10,7 @@ export default function BottomNavigation() {
   const isDelivery = !isUnder250 && !isProfile && (location.pathname === "/" || location.pathname === "/user" || (location.pathname.startsWith("/") && !location.pathname.startsWith("/restaurant") && !location.pathname.startsWith("/delivery") && !location.pathname.startsWith("/admin") && !location.pathname.startsWith("/usermain")))
 
   return (
-    <div 
+    <div
       className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-white p-4 border-t border-gray-200 z-50"
     >
       <div className="flex items-center justify-between max-w-md mx-auto">
@@ -61,12 +61,12 @@ export default function BottomNavigation() {
 
         {/* 4. MoBasket Button */}
         <Link
-          to="/user/grocery"
+          to="/grocery"
           className="cursor-pointer"
         >
           <div className="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-3 py-2 rounded-lg shadow-sm flex items-center gap-1 transition-transform active:scale-95">
             <span className="font-extrabold text-sm italic tracking-wide lowercase" style={{ fontFamily: 'sans-serif' }}>
-              MoBasket
+              mobasket
             </span>
             <ArrowUpRight size={16} strokeWidth={3} />
           </div>
