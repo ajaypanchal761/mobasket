@@ -1,306 +1,233 @@
-import { useState, useEffect } from "react"
-import { useNavigate, useParams } from "react-router-dom"
-import { motion } from "framer-motion"
-import { 
-  ArrowLeft,
-  Search,
-  Clock,
-  Star,
-  Plus,
-  Filter,
-  Heart
-} from "lucide-react"
-import Toast from "../components/Toast"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import React, { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { X, Heart, Clock, Search, ChevronRight } from 'lucide-react';
+
+// Assets
+import imgCoriander from '@/assets/bestseller/coriandar-removebg-preview.png';
+import imgChili from '@/assets/bestseller/mirchi-removebg-preview.png';
+import imgPotato from '@/assets/bestseller/aalu-removebg-preview.png';
+import imgOnion from '@/assets/bestseller/onion-removebg-preview.png';
+
+const sidebarCategories = [
+  { id: 'all', name: 'All', icon: imgCoriander },
+  { id: 'fresh-veg', name: 'Fresh Vegetables', icon: imgChili },
+  { id: 'fresh-fruit', name: 'Fresh Fruits', icon: 'https://cdn-icons-png.flaticon.com/512/1625/1625099.png' },
+  { id: 'exotics', name: 'Exotics', icon: 'https://cdn-icons-png.flaticon.com/512/765/765593.png' },
+  { id: 'coriander', name: 'Coriander & Others', icon: imgCoriander },
+  { id: 'flowers', name: 'Flowers & Leaves', icon: 'https://cdn-icons-png.flaticon.com/512/616/616554.png' },
+  { id: 'seasonal', name: 'Seasonal', icon: 'https://cdn-icons-png.flaticon.com/512/4264/4264726.png' },
+];
+
+const products = [
+  {
+    id: 1,
+    name: 'Coriander Bunch (Dhaniya Patta)',
+    weight: '100 g',
+    price: 1,
+    mrp: 7,
+    time: '8 MINS',
+    image: imgCoriander,
+    discount: '85% OFF',
+    recipeCount: 8,
+    category: 'coriander'
+  },
+  {
+    id: 2,
+    name: 'Green Chilli (Hari Mirch)',
+    weight: '100 g',
+    price: 19,
+    mrp: 22,
+    time: '8 MINS',
+    image: imgChili,
+    discount: '13% OFF',
+    recipeCount: 9,
+    category: 'fresh-veg'
+  },
+  {
+    id: 3,
+    name: 'Potato - New Crop (Aloo)',
+    weight: '1 kg',
+    price: 18,
+    mrp: 21,
+    time: '8 MINS',
+    image: imgPotato,
+    discount: '14% OFF',
+    recipeCount: 30,
+    options: '2 options',
+    category: 'fresh-veg'
+  },
+  {
+    id: 4,
+    name: 'Onion (Pyaz)',
+    weight: '1 kg',
+    price: 30,
+    mrp: 38,
+    time: '8 MINS',
+    image: imgOnion,
+    discount: '21% OFF',
+    recipeCount: 30,
+    category: 'fresh-veg'
+  },
+  {
+    id: 5,
+    name: 'Hybrid Tomato (Tamatar)',
+    weight: '500 g',
+    price: 14,
+    mrp: 20,
+    time: '8 MINS',
+    image: 'https://cdn-icons-png.flaticon.com/512/1202/1202125.png', // Placeholder
+    discount: '12% OFF',
+    recipeCount: 30,
+    options: '2 options',
+    category: 'fresh-veg'
+  },
+  {
+    id: 6,
+    name: 'Ginger (Adrak)',
+    weight: '100 g',
+    price: 12,
+    mrp: 20,
+    time: '8 MINS',
+    image: 'https://cdn-icons-png.flaticon.com/512/5108/5108190.png',
+    discount: '40% OFF',
+    recipeCount: 12,
+    category: 'coriander'
+  }
+];
 
 export default function CategoryFoodsPage() {
-  const navigate = useNavigate()
-  const { categoryName } = useParams()
-  const [activeFilter, setActiveFilter] = useState("Popular")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [wishlist, setWishlist] = useState(() => {
-    const saved = localStorage.getItem('wishlist')
-    return saved ? JSON.parse(saved) : []
-  })
-  const [toast, setToast] = useState({ show: false, message: '' })
+  const navigate = useNavigate();
+  const { categoryName } = useParams();
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // Show toast notification
-  const showToast = (message) => {
-    setToast({ show: true, message })
-    setTimeout(() => {
-      setToast({ show: false, message: '' })
-    }, 3000)
-  }
-
-  // Toggle wishlist item
-  const toggleWishlist = (item, type = 'food') => {
-    const itemId = type === 'food' ? `food-${item.id}` : `restaurant-${item.id}`
-    const { id, ...restItem } = item
-    const wishlistItem = {
-      id: itemId,
-      type,
-      originalId: item.id,
-      ...restItem
-    }
-    
-    setWishlist((prev) => {
-      const isInWishlist = prev.some((w) => w.id === itemId)
-      if (isInWishlist) {
-        const updated = prev.filter((w) => w.id !== itemId)
-        localStorage.setItem('wishlist', JSON.stringify(updated))
-        // Dispatch custom event to notify other components
-        window.dispatchEvent(new Event('wishlistUpdated'))
-        return updated
-      } else {
-        // Show toast notification
-        setToast({ 
-          show: true, 
-          message: `Your food item "${item.name}" is added to wishlist` 
-        })
-        setTimeout(() => {
-          setToast({ show: false, message: '' })
-        }, 3000)
-        const updated = [...prev, wishlistItem]
-        localStorage.setItem('wishlist', JSON.stringify(updated))
-        // Dispatch custom event to notify other components
-        window.dispatchEvent(new Event('wishlistUpdated'))
-        return updated
-      }
-    })
-  }
-
-  // Check if item is in wishlist
-  const isInWishlist = (item, type = 'food') => {
-    const itemId = type === 'food' ? `food-${item.id}` : `restaurant-${item.id}`
-    return wishlist.some((w) => w.id === itemId)
-  }
-
-  // Filter tabs
-  const filters = ["Nearby", "Popular", "Cuisines"]
-
-  // Mock food items for the category
-  const categoryFoods = [
-    {
-      id: 1,
-      name: "Woke Ramen - Chan...",
-      image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=300&fit=crop",
-      discount: "10% OFF",
-      deliveryTime: "50 mins",
-      rating: 4.5,
-      cuisine: "Chinese",
-      price: 2.10,
-      originalPrice: 6.10
-    },
-    {
-      id: 2,
-      name: "Good Taste Mala H...",
-      image: "https://images.unsplash.com/photo-1544025162-d76694265947?w=400&h=300&fit=crop",
-      discount: "50% OFF",
-      deliveryTime: "35 mins",
-      rating: 4.2,
-      cuisine: "Local & Malaysian",
-      price: 5.80,
-      originalPrice: 8.80
-    },
-    {
-      id: 3,
-      name: "Singa Cafe - UE Bizh...",
-      image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&h=300&fit=crop",
-      discount: "10% OFF",
-      deliveryTime: "40 mins",
-      rating: 4.2,
-      cuisine: "Western",
-      price: 4.00,
-      originalPrice: 7.00
-    },
-    {
-      id: 4,
-      name: "Toko Burgers at Al M...",
-      image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=300&fit=crop",
-      discount: "10% OFF",
-      deliveryTime: "40 mins",
-      rating: 4.5,
-      cuisine: "Western",
-      price: 5.30,
-      originalPrice: 8.30
-    },
-    {
-      id: 5,
-      name: "Spicy Noodles House",
-      image: "https://images.unsplash.com/photo-1525755662778-989d0524087e?w=400&h=300&fit=crop",
-      discount: "15% OFF",
-      deliveryTime: "30 mins",
-      rating: 4.7,
-      cuisine: "Chinese",
-      price: 3.50,
-      originalPrice: 6.50
-    },
-    {
-      id: 6,
-      name: "Thai Delight Restaurant",
-      image: "https://images.unsplash.com/photo-1559314809-0d155b1c5b8e?w=400&h=300&fit=crop",
-      discount: "20% OFF",
-      deliveryTime: "45 mins",
-      rating: 4.6,
-      cuisine: "Thai",
-      price: 4.20,
-      originalPrice: 7.20
-    },
-  ]
+  // Filter products based on selected sidebar category
+  const filteredProducts = selectedCategory === 'all'
+    ? products
+    : products.filter(p => p.category === selectedCategory || selectedCategory === 'all'); // Logic simplified for mock
 
   return (
-    <div className="min-h-screen bg-[#f6e9dc] pb-20">
-      {/* Toast Notification */}
-      <Toast show={toast.show} message={toast.message} />
-      {/* Top Header */}
-      <div className="bg-white sticky top-0 z-50 border-b border-gray-100">
-        <div className="px-4 py-3">
-          {/* Back Button and Search Bar Row */}
-          <div className="flex items-center gap-3">
-            {/* Back Button */}
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-800" />
-            </button>
+    <div className="bg-[#f4f6fb] min-h-screen h-full flex flex-col md:max-w-md md:mx-auto shadow-2xl overflow-hidden font-sans">
 
-            {/* Search Bar - Using Input Component */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-              <Input
-                type="text"
-                placeholder="Would you like to eat something?"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 h-10 w-full bg-gray-50 border-gray-200 rounded-lg focus:bg-white focus:border-[#ff8100] transition-colors"
-              />
-            </div>
-          </div>
+      {/* Header */}
+      <div className="bg-white sticky top-0 z-50 px-4 py-3 flex items-center justify-between border-b border-gray-100 shadow-sm">
+        <div className="flex flex-col">
+          <h1 className="text-sm font-black text-slate-800 tracking-wide">
+            Vegetables, Fruits & More
+          </h1>
+          <span className="text-[10px] text-slate-500 font-bold">1285 items</span>
         </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100">
-        <div className="flex items-center gap-2">
-          <div className="relative flex gap-2 overflow-x-auto scrollbar-hide flex-1 -mx-4 px-4">
-            {filters.map((filter) => (
-              <button
-                key={filter}
-                onClick={() => setActiveFilter(filter)}
-                className={`relative px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 ${
-                  activeFilter === filter
-                    ? 'text-white'
-                    : 'text-gray-700 border border-gray-200 bg-white'
-                }`}
-              >
-                {activeFilter === filter && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute inset-0 bg-[#ff8100] rounded-full z-0"
-                    transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 30
-                    }}
-                  />
-                )}
-                <span className="relative z-10">{filter}</span>
-              </button>
-            ))}
-          </div>
-          
-          {/* Filter Button */}
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-gray-700 border border-gray-200 bg-white hover:bg-gray-50 transition-colors flex-shrink-0">
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
+        {/* Close Button / Search */}
+        <div className="flex items-center gap-4">
+          <Search size={20} className="text-slate-800" />
+          <button onClick={() => navigate(-1)} className="bg-slate-100 p-1 rounded-full">
+            <X size={18} className="text-slate-800" />
           </button>
         </div>
       </div>
 
-      {/* Food Items List */}
-      <div className="px-4 py-4 space-y-4">
-        {categoryFoods.map((food) => (
-          <div
-            key={food.id}
-            className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => navigate(`/usermain/food/${food.id}`)}
-          >
-            <div className="flex gap-3 p-3">
-              {/* Food Image */}
-              <div className="relative flex-shrink-0">
-                <img 
-                  src={food.image} 
-                  alt={food.name}
-                  className="w-24 h-24 rounded-lg object-cover"
-                />
-                {/* Heart Icon - Top Right */}
-                <button 
-                  className="absolute top-1 right-1 p-1 bg-white/80 backdrop-blur-sm rounded-full hover:scale-110 transition-transform z-10"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    toggleWishlist(food, 'food')
-                  }}
-                >
-                  <Heart 
-                    className={`w-4 h-4 transition-all ${
-                      isInWishlist(food, 'food') 
-                        ? 'text-red-500 fill-red-500' 
-                        : 'text-gray-400 hover:text-red-500'
-                    }`} 
-                  />
-                </button>
+      {/* Main Content Area: Sidebar + Grid */}
+      <div className="flex-1 flex overflow-hidden">
+
+        {/* Left Sidebar */}
+        <div className="w-[23%] bg-white h-full overflow-y-auto pb-20 shadow-[2px_0_5px_rgba(0,0,0,0.02)] no-scrollbar z-10">
+          {sidebarCategories.map((cat) => (
+            <div
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`relative flex flex-col items-center gap-1 py-4 px-1 cursor-pointer transition-all ${selectedCategory === cat.id ? 'bg-[#ebf7e8]' : 'bg-white'
+                }`}
+            >
+              {/* Green Indicator Bar */}
+              {selectedCategory === cat.id && (
+                <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#1aa03f] rounded-l-lg"></div>
+              )}
+
+              {/* Icon Container */}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center p-1.5 ${selectedCategory === cat.id ? 'bg-[#d8edd6]' : 'bg-slate-50'
+                }`}>
+                <img src={cat.icon} alt={cat.name} className="w-full h-full object-contain" onError={(e) => e.target.src = 'https://cdn-icons-png.flaticon.com/512/2909/2909808.png'} />
               </div>
 
-              {/* Food Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between mb-1">
-                  <h3 className="text-sm font-bold text-gray-900 flex-1 truncate">{food.name}</h3>
-                  {/* Discount Tag */}
-                  <div className="bg-[#ff8100] text-white text-xs font-bold px-2 py-0.5 rounded ml-2 flex-shrink-0">
-                    {food.discount}
-                  </div>
-                </div>
-
-                {/* Delivery Time */}
-                <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{food.deliveryTime}</span>
-                </div>
-
-                {/* Rating and Cuisine */}
-                <div className="flex items-center gap-1 text-xs text-gray-600 mb-2">
-                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                  <span>{food.rating}</span>
-                  <span className="ml-1">{food.cuisine}</span>
-                </div>
-
-                {/* Price and Add Button */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-base font-bold text-gray-900">${food.price.toFixed(2)}</span>
-                    <span className="text-xs text-gray-400 line-through">${food.originalPrice.toFixed(2)}</span>
-                  </div>
-                  
-                  {/* Add Button */}
-                  <Button
-                    className="bg-[#ff8100] hover:bg-[#e67300] text-white rounded-lg px-4 py-1.5 h-auto flex items-center gap-1"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      showToast("Item added to the cart")
-                      // Handle add to cart logic here
-                    }}
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="text-xs font-semibold">Add</span>
-                  </Button>
-                </div>
-              </div>
+              <span className={`text-[9px] text-center leading-tight px-1 font-bold ${selectedCategory === cat.id ? 'text-slate-900' : 'text-slate-500'
+                }`}>
+                {cat.name}
+              </span>
             </div>
+          ))}
+        </div>
+
+        {/* Right Grid Content */}
+        <div className="flex-1 bg-white h-full overflow-y-auto pb-24 px-3 pt-4">
+          <div className="grid grid-cols-2 gap-3">
+            {filteredProducts.map((item) => (
+              <div key={item.id} className="flex flex-col gap-1 relative group">
+                {/* Card Image Container */}
+                <div className="relative w-full aspect-[4/4.5] bg-white border border-slate-100 rounded-xl p-2 flex items-center justify-center shadow-sm">
+                  <img src={item.image} alt={item.name} className="w-full h-full object-contain drop-shadow-sm" />
+
+                  {/* Discount Badge */}
+                  <div className="absolute top-0 left-0 bg-[#4a72d3] text-white text-[8px] font-black px-1.5 py-0.5 rounded-tl-xl rounded-br-lg shadow-sm z-10">
+                    {item.discount}
+                  </div>
+
+                  {/* Like Button */}
+                  <button className="absolute top-1.5 right-1.5 z-10">
+                    <Heart size={16} className="text-slate-400 hover:text-red-500 transition-colors" />
+                  </button>
+
+                  {/* ADD Button Floating */}
+                  <div className="absolute -bottom-3 right-0 md:right-auto md:left-1/2 md:-translate-x-1/2 flex flex-col items-center">
+                    <button className="bg-white border border-[#26a541] text-[#26a541] text-[10px] font-extrabold px-5 py-1.5 rounded-lg shadow-sm uppercase active:scale-95 transition-transform bg-[#f7fff9]">
+                      ADD
+                    </button>
+                    {item.options && (
+                      <span className="text-[8px] text-slate-400 font-bold bg-white px-1 shadow-sm mt-0.5 rounded border border-slate-100">{item.options}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Content Details */}
+                <div className="mt-4 px-0.5">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <Clock size={10} className="text-slate-400 bg-slate-100 rounded-full p-[1px]" />
+                    <span className="text-[8px] font-bold text-slate-500 bg-slate-100 px-1 py-[1px] rounded">{item.time}</span>
+                  </div>
+                  <h3 className="text-[11px] font-bold text-slate-800 leading-tight line-clamp-2 min-h-[2.4em]">
+                    {item.name}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-semibold mb-1.5">{item.weight}</p>
+
+                  {/* Price Row */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <div className="bg-[#fec007] text-slate-900 rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-black shadow-sm">
+                        ₹{item.price}
+                      </div>
+                      <span className="text-[10px] text-slate-400 line-through decoration-slate-400 decoration-1 font-semibold">₹{item.mrp}</span>
+                    </div>
+                  </div>
+
+                  {/* Recipe Link */}
+                  <div className="border border-[#e0f2fe] bg-[#f0f9ff] rounded px-2 py-1 flex items-center justify-between cursor-pointer">
+                    <span className="text-[9px] font-bold text-sky-600">See {item.recipeCount} recipes</span>
+                    <ChevronRight size={10} className="text-sky-600" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
+
+      <style>{`
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
     </div>
-  )
+  );
 }
